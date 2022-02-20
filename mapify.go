@@ -33,7 +33,12 @@ func (i Instance) mapStruct(reflectValue reflect.Value) map[string]interface{} {
 	for j := 0; j < reflectType.NumField(); j++ {
 		field := reflectType.Field(j)
 
-		result[field.Name] = reflectValue.Field(j).Interface()
+		if !field.IsExported() {
+			continue
+		}
+
+		value := reflectValue.Field(j)
+		result[field.Name] = value.Interface()
 	}
 
 	return result

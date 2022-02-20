@@ -1,3 +1,6 @@
+// (c) 2022 Jacek Olszak
+// This code is licensed under MIT license (see LICENSE for details)
+
 package mapify_test
 
 import (
@@ -27,7 +30,7 @@ func TestInstance_MapAny(t *testing.T) {
 
 			for _, val := range expected {
 				result := instance.MapAny(val)
-				assert.Equal(t, val, result)
+				assert.Same(t, val, result)
 			}
 		})
 
@@ -36,37 +39,94 @@ func TestInstance_MapAny(t *testing.T) {
 			assert.Nil(t, actual)
 		})
 
+		t.Run("should map pointer to nil primitive", func(t *testing.T) {
+			var str *string
+			actual := instance.MapAny(str)
+			assert.Same(t, str, actual)
+		})
+
 		t.Run("should map an empty struct", func(t *testing.T) {
 			actual := instance.MapAny(struct{}{})
-			assert.Equal(t, map[string]interface{}{}, actual)
+			assert.IsType(t, map[string]interface{}{}, actual)
+			assert.Empty(t, actual)
 		})
 
 		t.Run("should map a pointer to empty struct", func(t *testing.T) {
 			s := struct{}{}
 			actual := instance.MapAny(&s)
-			assert.Equal(t, map[string]interface{}{}, actual)
+			assert.IsType(t, map[string]interface{}{}, actual)
+			assert.Empty(t, actual)
 		})
 
 		t.Run("should map a pointer to nil struct", func(t *testing.T) {
 			var s *struct{}
 			actual := instance.MapAny(s)
-			assert.Nil(t, actual)
+			assert.Same(t, s, actual)
 		})
 
-		t.Run("should map a pointer to pointer to nil struct", func(t *testing.T) {
-			var s **struct{}
-			actual := instance.MapAny(s)
-			assert.Nil(t, actual)
-		})
-
-		t.Run("should map a zero-value struct with one field", func(t *testing.T) {
+		t.Run("should map a zero-value struct with two fields", func(t *testing.T) {
 			s := struct {
-				Field string
+				Field1 string
+				Field2 string
 			}{}
 			actual := instance.MapAny(s)
 			assert.Equal(t,
 				map[string]interface{}{
-					"Field": "",
+					"Field1": "",
+					"Field2": "",
+				},
+				actual)
+		})
+
+		t.Run("should map a struct with only private fields", func(t *testing.T) {
+			s := struct {
+				field1 string
+				field2 string
+			}{}
+			actual := instance.MapAny(s)
+			assert.IsType(t, map[string]interface{}{}, actual)
+			assert.Empty(t, actual)
+		})
+
+		t.Run("should map a struct with field specified", func(t *testing.T) {
+			s := struct {
+				Field string
+			}{
+				Field: "value",
+			}
+			actual := instance.MapAny(s)
+			assert.Equal(t,
+				map[string]interface{}{
+					"Field": s.Field,
+				},
+				actual)
+		})
+
+		t.Run("should map a struct with field pointer specified", func(t *testing.T) {
+			str := "value"
+			s := struct {
+				Field *string
+			}{
+				Field: &str,
+			}
+			// when
+			actual := instance.MapAny(s)
+			// then
+			assert.Equal(t,
+				map[string]interface{}{
+					"Field": s.Field,
+				},
+				actual)
+		})
+
+		t.Run("should map a struct with nil field", func(t *testing.T) {
+			s := struct {
+				Field *string
+			}{}
+			actual := instance.MapAny(s)
+			assert.Equal(t,
+				map[string]interface{}{
+					"Field": s.Field,
 				},
 				actual)
 		})
