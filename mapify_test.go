@@ -377,4 +377,46 @@ func TestFilter(t *testing.T) {
 			},
 			v)
 	})
+
+	t.Run("should filter by field name", func(t *testing.T) {
+		instance := mapify.Instance{
+			Filter: func(path string, e mapify.Element) bool {
+				return e.Name() == "Field"
+			},
+		}
+		// when
+		v := instance.MapAny(
+			struct{ Field string }{
+				Field: "v",
+			},
+		)
+		// then
+		assert.Equal(t,
+			map[string]interface{}{
+				"Field": "v",
+			},
+			v)
+	})
+}
+
+func TestRename(t *testing.T) {
+	t.Run("should rename struct field", func(t *testing.T) {
+		instance := mapify.Instance{
+			Rename: func(path string, e mapify.Element) string {
+				return "newName"
+			},
+		}
+		// when
+		v := instance.MapAny(
+			struct{ OldName string }{
+				OldName: "v",
+			},
+		)
+		// then
+		assert.Equal(t,
+			map[string]interface{}{
+				"newName": "v",
+			},
+			v)
+	})
 }

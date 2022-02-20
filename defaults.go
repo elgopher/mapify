@@ -6,3 +6,7 @@ package mapify
 func acceptAllFields(string, Element) bool {
 	return true
 }
+
+func noRename(_ string, e Element) string {
+	return e.Name()
+}
