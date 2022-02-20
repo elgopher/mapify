@@ -70,12 +70,11 @@ func TestInstance_MapAny(t *testing.T) {
 				Field2 string
 			}{}
 			actual := instance.MapAny(s)
-			assert.Equal(t,
-				map[string]interface{}{
-					"Field1": "",
-					"Field2": "",
-				},
-				actual)
+			expected := map[string]interface{}{
+				"Field1": "",
+				"Field2": "",
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 		t.Run("should map a struct with only private fields", func(t *testing.T) {
@@ -89,80 +88,56 @@ func TestInstance_MapAny(t *testing.T) {
 		})
 
 		t.Run("should map a struct with field specified", func(t *testing.T) {
-			s := struct {
-				Field string
-			}{
-				Field: "value",
-			}
+			s := struct{ Field string }{Field: "value"}
 			actual := instance.MapAny(s)
-			assert.Equal(t,
-				map[string]interface{}{
-					"Field": s.Field,
-				},
-				actual)
+			expected := map[string]interface{}{
+				"Field": s.Field,
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 		t.Run("should map a struct with field pointer specified", func(t *testing.T) {
 			str := "value"
-			s := struct {
-				Field *string
-			}{
-				Field: &str,
-			}
+			s := struct{ Field *string }{Field: &str}
 			// when
 			actual := instance.MapAny(s)
 			// then
-			assert.Equal(t,
-				map[string]interface{}{
-					"Field": s.Field,
-				},
-				actual)
+			expected := map[string]interface{}{
+				"Field": s.Field,
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 		t.Run("should map a struct with nil field", func(t *testing.T) {
-			s := struct {
-				Field *string
-			}{}
+			s := struct{ Field *string }{}
 			actual := instance.MapAny(s)
-			assert.Equal(t,
-				map[string]interface{}{
-					"Field": s.Field,
-				},
-				actual)
+			expected := map[string]interface{}{
+				"Field": s.Field,
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 		t.Run("should map a struct with nested struct", func(t *testing.T) {
-			type nestedStruct struct {
-				Field string
-			}
-
-			s := struct {
-				Nested nestedStruct
-			}{
-				Nested: nestedStruct{
-					Field: "value",
-				},
+			type nestedStruct struct{ Field string }
+			s := struct{ Nested nestedStruct }{
+				Nested: nestedStruct{Field: "value"},
 			}
 			actual := instance.MapAny(s)
-			assert.Equal(t,
-				map[string]interface{}{
-					"Nested": map[string]interface{}{
-						"Field": s.Nested.Field,
-					},
+			expected := map[string]interface{}{
+				"Nested": map[string]interface{}{
+					"Field": s.Nested.Field,
 				},
-				actual)
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 		t.Run("should map a struct with nested nil struct", func(t *testing.T) {
-			s := struct {
-				Nested *struct{}
-			}{}
+			s := struct{ Nested *struct{} }{}
 			actual := instance.MapAny(s)
-			assert.Equal(t,
-				map[string]interface{}{
-					"Nested": s.Nested,
-				},
-				actual)
+			expected := map[string]interface{}{
+				"Nested": s.Nested,
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 		t.Run("should map an empty slice of strings", func(t *testing.T) {
@@ -195,63 +170,53 @@ func TestInstance_MapAny(t *testing.T) {
 				{},
 			}
 			actual := instance.MapAny(s)
-			assert.Equal(t,
-				[]map[string]interface{}{
-					{},
-					{},
-				},
-				actual)
+			expected := []map[string]interface{}{
+				{},
+				{},
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 		t.Run("should map a slice of structs", func(t *testing.T) {
-			type structWithField struct {
-				Field string
-			}
+			type structWithField struct{ Field string }
 			s := []structWithField{
 				{Field: "value1"},
 				{Field: "value2"},
 			}
 			actual := instance.MapAny(s)
-			assert.Equal(t,
-				[]map[string]interface{}{
-					{
-						"Field": s[0].Field,
-					},
-					{
-						"Field": s[1].Field,
-					},
+			expected := []map[string]interface{}{
+				{
+					"Field": s[0].Field,
 				},
-				actual)
+				{
+					"Field": s[1].Field,
+				},
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 		t.Run("should map slice of slices of structs", func(t *testing.T) {
-			type structWithField struct {
-				Field string
-			}
+			type structWithField struct{ Field string }
 			s := [][]structWithField{
 				{{Field: "A1"}, {Field: "A2"}},
 				{{Field: "B1"}, {Field: "B2"}},
 			}
 			actual := instance.MapAny(s)
-			assert.Equal(t,
-				[][]map[string]interface{}{
-					{
-						map[string]interface{}{"Field": s[0][0].Field},
-						map[string]interface{}{"Field": s[0][1].Field},
-					},
-					{
-						map[string]interface{}{"Field": s[1][0].Field},
-						map[string]interface{}{"Field": s[1][1].Field},
-					},
+			expected := [][]map[string]interface{}{
+				{
+					map[string]interface{}{"Field": s[0][0].Field},
+					map[string]interface{}{"Field": s[0][1].Field},
 				},
-				actual)
+				{
+					map[string]interface{}{"Field": s[1][0].Field},
+					map[string]interface{}{"Field": s[1][1].Field},
+				},
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 		t.Run("should map a struct with nested slice of structs", func(t *testing.T) {
-			type nestedStruct struct {
-				Field string
-			}
-
+			type nestedStruct struct{ Field string }
 			s := struct {
 				Nested []nestedStruct
 			}{
@@ -261,14 +226,13 @@ func TestInstance_MapAny(t *testing.T) {
 				},
 			}
 			actual := instance.MapAny(s)
-			assert.Equal(t,
-				map[string]interface{}{
-					"Nested": []map[string]interface{}{
-						{"Field": s.Nested[0].Field},
-						{"Field": s.Nested[1].Field},
-					},
+			expected := map[string]interface{}{
+				"Nested": []map[string]interface{}{
+					{"Field": s.Nested[0].Field},
+					{"Field": s.Nested[1].Field},
 				},
-				actual)
+			}
+			assert.Equal(t, expected, actual)
 		})
 
 	})
@@ -276,9 +240,7 @@ func TestInstance_MapAny(t *testing.T) {
 
 func TestFilter(t *testing.T) {
 	t.Run("should filter out all struct fields", func(t *testing.T) {
-		s := struct {
-			A, B string
-		}{}
+		s := struct{ A, B string }{}
 		instance := mapify.Instance{
 			Filter: func(path string, e mapify.Element) bool {
 				return false
@@ -291,9 +253,7 @@ func TestFilter(t *testing.T) {
 	})
 
 	t.Run("should filter by struct field path", func(t *testing.T) {
-		s := struct {
-			A, B string
-		}{}
+		s := struct{ A, B string }{}
 		instance := mapify.Instance{
 			Filter: func(path string, e mapify.Element) bool {
 				return path == ".A"
@@ -302,16 +262,15 @@ func TestFilter(t *testing.T) {
 		// when
 		v := instance.MapAny(s)
 		// then
-		assert.Equal(t, map[string]interface{}{
+		expected := map[string]interface{}{
 			"A": "",
-		}, v)
+		}
+		assert.Equal(t, expected, v)
 	})
 
 	t.Run("should filter by nested struct field path", func(t *testing.T) {
 		s := struct {
-			Nested struct {
-				A string
-			}
+			Nested struct{ A string }
 		}{}
 		instance := mapify.Instance{
 			Filter: func(path string, e mapify.Element) bool {
@@ -339,12 +298,11 @@ func TestFilter(t *testing.T) {
 		// when
 		v := instance.MapAny(s)
 		// then
-		assert.Equal(t,
-			[]map[string]interface{}{
-				{},
-				{"Field": s[1].Field},
-			},
-			v)
+		expected := []map[string]interface{}{
+			{},
+			{"Field": s[1].Field},
+		}
+		assert.Equal(t, expected, v)
 	})
 
 	t.Run("should filter by 2d slice element path", func(t *testing.T) {
@@ -365,17 +323,16 @@ func TestFilter(t *testing.T) {
 		// when
 		v := instance.MapAny(s)
 		// then
-		assert.Equal(t,
-			[][]map[string]interface{}{
-				{
-					{},
-				},
-				{
-					{},
-					{"Field": s[1][1].Field},
-				},
+		expected := [][]map[string]interface{}{
+			{
+				{},
 			},
-			v)
+			{
+				{},
+				{"Field": s[1][1].Field},
+			},
+		}
+		assert.Equal(t, expected, v)
 	})
 
 	t.Run("should filter by field name", func(t *testing.T) {
@@ -391,11 +348,10 @@ func TestFilter(t *testing.T) {
 			},
 		)
 		// then
-		assert.Equal(t,
-			map[string]interface{}{
-				"Field": "v",
-			},
-			v)
+		expected := map[string]interface{}{
+			"Field": "v",
+		}
+		assert.Equal(t, expected, v)
 	})
 
 	t.Run("should filter by value", func(t *testing.T) {
@@ -412,11 +368,10 @@ func TestFilter(t *testing.T) {
 			},
 		)
 		// then
-		assert.Equal(t,
-			map[string]interface{}{
-				"Field1": "keep it",
-			},
-			v)
+		expected := map[string]interface{}{
+			"Field1": "keep it",
+		}
+		assert.Equal(t, expected, v)
 	})
 }
 
@@ -434,11 +389,10 @@ func TestRename(t *testing.T) {
 			},
 		)
 		// then
-		assert.Equal(t,
-			map[string]interface{}{
-				"newName": "v",
-			},
-			v)
+		expected := map[string]interface{}{
+			"newName": "v",
+		}
+		assert.Equal(t, expected, v)
 	})
 }
 
@@ -461,12 +415,11 @@ func TestMapValue(t *testing.T) {
 		// when
 		v := instance.MapAny(s)
 		// then
-		assert.Equal(t,
-			map[string]interface{}{
-				"Field1": mappedValue,
-				"Field2": s.Field2,
-			},
-			v)
+		expected := map[string]interface{}{
+			"Field1": mappedValue,
+			"Field2": s.Field2,
+		}
+		assert.Equal(t, expected, v)
 	})
 
 	t.Run("should map struct field by path", func(t *testing.T) {
@@ -485,11 +438,10 @@ func TestMapValue(t *testing.T) {
 		// when
 		v := instance.MapAny(s)
 		// then
-		assert.Equal(t,
-			map[string]interface{}{
-				"Field1": mappedValue,
-				"Field2": s.Field2,
-			},
-			v)
+		expected := map[string]interface{}{
+			"Field1": mappedValue,
+			"Field2": s.Field2,
+		}
+		assert.Equal(t, expected, v)
 	})
 }
