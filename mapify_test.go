@@ -321,7 +321,7 @@ func TestFilter(t *testing.T) {
 		// when
 		v := instance.MapAny(s)
 		// then
-		assert.Equal(t, map[string]interface{}{ // TODO Will be better to have map[string]interface{}
+		assert.Equal(t, map[string]interface{}{
 			"Nested": map[string]interface{}{"A": ""},
 		}, v)
 	})
