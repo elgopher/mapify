@@ -89,7 +89,7 @@ func (i Instance) mapStruct(path string, reflectValue reflect.Value) map[string]
 
 		if i.Filter(fieldPath, element) {
 			renamed := i.Rename(fieldPath, element)
-			mappedValue := i.MapValue(fieldPath, Element{name: element.Name(), Value: value})
+			mappedValue := i.MapValue(fieldPath, element)
 			result[renamed] = i.mapAny(fieldPath, mappedValue)
 		}
 	}
@@ -114,9 +114,10 @@ func (i Instance) mapSlice(path string, reflectValue reflect.Value) interface{} 
 			var slice [][]map[string]interface{}
 
 			for j := 0; j < reflectValue.Len(); j++ {
-				indexValue := i.mapSlice(slicePath(path, j), reflectValue.Index(j)).([]map[string]interface{})
-				slice = append(slice, indexValue)
+				indexValue := i.mapSlice(slicePath(path, j), reflectValue.Index(j))
+				slice = append(slice, indexValue.([]map[string]interface{}))
 			}
+
 			return slice
 		}
 	}
