@@ -28,6 +28,7 @@ type MapValue func(path string, e Element) interface{}
 // Element represents either a map entry, field of a struct or unnamed element of a slice.
 type Element struct {
 	name string
+	reflect.Value
 }
 
 func (e Element) Name() string {
@@ -62,6 +63,10 @@ func (i Instance) newInstance() Instance {
 		i.Rename = noRename
 	}
 
+	if i.MapValue == nil {
+		i.MapValue = interfaceValue
+	}
+
 	return i
 }
 
@@ -79,12 +84,13 @@ func (i Instance) mapStruct(path string, reflectValue reflect.Value) map[string]
 
 		fieldName := field.Name
 		fieldPath := path + "." + fieldName
-		element := Element{name: fieldName}
+		value := reflectValue.Field(j)
+		element := Element{name: fieldName, Value: value}
 
 		if i.Filter(fieldPath, element) {
-			value := reflectValue.Field(j)
 			renamed := i.Rename(fieldPath, element)
-			result[renamed] = i.mapAny(fieldPath, value.Interface())
+			mappedValue := i.MapValue(fieldPath, Element{name: element.Name(), Value: value})
+			result[renamed] = i.mapAny(fieldPath, mappedValue)
 		}
 	}
 

@@ -397,6 +397,27 @@ func TestFilter(t *testing.T) {
 			},
 			v)
 	})
+
+	t.Run("should filter by value", func(t *testing.T) {
+		instance := mapify.Instance{
+			Filter: func(path string, e mapify.Element) bool {
+				return e.String() == "keep it"
+			},
+		}
+		// when
+		v := instance.MapAny(
+			struct{ Field1, Field2 string }{
+				Field1: "keep it",
+				Field2: "omit this",
+			},
+		)
+		// then
+		assert.Equal(t,
+			map[string]interface{}{
+				"Field1": "keep it",
+			},
+			v)
+	})
 }
 
 func TestRename(t *testing.T) {
@@ -416,6 +437,58 @@ func TestRename(t *testing.T) {
 		assert.Equal(t,
 			map[string]interface{}{
 				"newName": "v",
+			},
+			v)
+	})
+}
+
+func TestMapValue(t *testing.T) {
+	mappedValue := "str"
+
+	t.Run("should map struct field", func(t *testing.T) {
+		instance := mapify.Instance{
+			MapValue: func(path string, e mapify.Element) interface{} {
+				if e.Name() == "Field1" {
+					return mappedValue
+				}
+
+				return e.Interface()
+			},
+		}
+		s := struct{ Field1, Field2 int }{
+			Field1: 1, Field2: 2,
+		}
+		// when
+		v := instance.MapAny(s)
+		// then
+		assert.Equal(t,
+			map[string]interface{}{
+				"Field1": mappedValue,
+				"Field2": s.Field2,
+			},
+			v)
+	})
+
+	t.Run("should map struct field by path", func(t *testing.T) {
+		instance := mapify.Instance{
+			MapValue: func(path string, e mapify.Element) interface{} {
+				if path == ".Field1" {
+					return mappedValue
+				}
+
+				return e.Interface()
+			},
+		}
+		s := struct{ Field1, Field2 int }{
+			Field1: 1, Field2: 2,
+		}
+		// when
+		v := instance.MapAny(s)
+		// then
+		assert.Equal(t,
+			map[string]interface{}{
+				"Field1": mappedValue,
+				"Field2": s.Field2,
 			},
 			v)
 	})

@@ -10,3 +10,7 @@ func acceptAllFields(string, Element) bool {
 func noRename(_ string, e Element) string {
 	return e.Name()
 }
+
+func interfaceValue(_ string, e Element) interface{} {
+	return e.Interface()
+}
