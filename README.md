@@ -6,11 +6,14 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/elgopher/mapify)](https://goreportcard.com/report/github.com/elgopher/mapify)
 [![codecov](https://codecov.io/gh/elgopher/mapify/branch/master/graph/badge.svg)](https://codecov.io/gh/elgopher/mapify)
 
-Highly configurable struct to map converter. Also converts maps into other maps.
+**Highly configurable** struct to map converter. Also converts maps into other maps.
 
 ## Features (work in progress)
 
-* ability to rename keys during conversion
-* ability to omit keys based on name, element, field tag etc.
-* ability to map elements during conversion
-
+* **configuration outside the struct**
+  * could be in a different package - separation of concerns
+  * no need to modify original structs (by adding tags, implementing methods etc.)
+  * **behaviour as a code** - you provide code which will be run during conversion
+* ability to **rename keys** during conversion
+* ability to **omit keys** based on field name, value or tag etc.
+* ability to **map elements** during conversion
