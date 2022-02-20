@@ -158,5 +158,59 @@ func TestInstance_MapAny(t *testing.T) {
 			assert.Equal(t, []string{}, actual)
 		})
 
+		t.Run("should map an nil slice of strings", func(t *testing.T) {
+			var given []string
+			actual := instance.MapAny(given)
+			assert.Equal(t, given, actual)
+		})
+
+		t.Run("should map an slice of two strings", func(t *testing.T) {
+			given := []string{"1", "2"}
+			actual := instance.MapAny(given)
+			assert.Equal(t, given, actual)
+		})
+
+		t.Run("should map an slice of pointer to string", func(t *testing.T) {
+			str1 := "1"
+			given := []*string{&str1}
+			actual := instance.MapAny(given)
+			assert.Equal(t, given, actual)
+		})
+
+		t.Run("should map a slice of empty structs", func(t *testing.T) {
+			s := []struct{}{
+				{},
+				{},
+			}
+			actual := instance.MapAny(s)
+			assert.Equal(t,
+				[]map[string]interface{}{
+					{},
+					{},
+				},
+				actual)
+		})
+
+		t.Run("should map a slice of structs", func(t *testing.T) {
+			type structWithField struct {
+				Field string
+			}
+			s := []structWithField{
+				{Field: "value1"},
+				{Field: "value2"},
+			}
+			actual := instance.MapAny(s)
+			assert.Equal(t,
+				[]map[string]interface{}{
+					{
+						"Field": s[0].Field,
+					},
+					{
+						"Field": s[1].Field,
+					},
+				},
+				actual)
+		})
+
 	})
 }
