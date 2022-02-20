@@ -38,7 +38,7 @@ func (i Instance) mapStruct(reflectValue reflect.Value) map[string]interface{} {
 		}
 
 		value := reflectValue.Field(j)
-		result[field.Name] = value.Interface()
+		result[field.Name] = i.MapAny(value.Interface())
 	}
 
 	return result

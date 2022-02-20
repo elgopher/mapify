@@ -131,9 +131,32 @@ func TestInstance_MapAny(t *testing.T) {
 				actual)
 		})
 
+		t.Run("should map a struct with nested struct", func(t *testing.T) {
+			type nestedStruct struct {
+				Field string
+			}
+
+			s := struct {
+				Nested nestedStruct
+			}{
+				Nested: nestedStruct{
+					Field: "value",
+				},
+			}
+			actual := instance.MapAny(s)
+			assert.Equal(t,
+				map[string]interface{}{
+					"Nested": map[string]interface{}{
+						"Field": s.Nested.Field,
+					},
+				},
+				actual)
+		})
+
 		t.Run("should map an empty slice of strings", func(t *testing.T) {
 			actual := instance.MapAny([]string{})
 			assert.Equal(t, []string{}, actual)
 		})
+
 	})
 }
