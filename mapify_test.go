@@ -273,3 +273,108 @@ func TestInstance_MapAny(t *testing.T) {
 
 	})
 }
+
+func TestFilter(t *testing.T) {
+	t.Run("should filter out all struct fields", func(t *testing.T) {
+		s := struct {
+			A, B string
+		}{}
+		instance := mapify.Instance{
+			Filter: func(path string, e mapify.Element) bool {
+				return false
+			},
+		}
+		// when
+		v := instance.MapAny(s)
+		// then
+		assert.Empty(t, v)
+	})
+
+	t.Run("should filter by struct field path", func(t *testing.T) {
+		s := struct {
+			A, B string
+		}{}
+		instance := mapify.Instance{
+			Filter: func(path string, e mapify.Element) bool {
+				return path == ".A"
+			},
+		}
+		// when
+		v := instance.MapAny(s)
+		// then
+		assert.Equal(t, map[string]interface{}{
+			"A": "",
+		}, v)
+	})
+
+	t.Run("should filter by nested struct field path", func(t *testing.T) {
+		s := struct {
+			Nested struct {
+				A string
+			}
+		}{}
+		instance := mapify.Instance{
+			Filter: func(path string, e mapify.Element) bool {
+				return path == ".Nested" || path == ".Nested.A"
+			},
+		}
+		// when
+		v := instance.MapAny(s)
+		// then
+		assert.Equal(t, map[string]interface{}{ // TODO Will be better to have map[string]interface{}
+			"Nested": map[string]interface{}{"A": ""},
+		}, v)
+	})
+
+	t.Run("should filter by slice element path", func(t *testing.T) {
+		s := []struct{ Field string }{
+			{Field: "0"},
+			{Field: "1"},
+		}
+		instance := mapify.Instance{
+			Filter: func(path string, e mapify.Element) bool {
+				return path == "[1].Field"
+			},
+		}
+		// when
+		v := instance.MapAny(s)
+		// then
+		assert.Equal(t,
+			[]map[string]interface{}{
+				{},
+				{"Field": s[1].Field},
+			},
+			v)
+	})
+
+	t.Run("should filter by 2d slice element path", func(t *testing.T) {
+		s := [][]struct{ Field string }{
+			{
+				{Field: "A0"},
+			},
+			{
+				{Field: "B0"},
+				{Field: "B1"},
+			},
+		}
+		instance := mapify.Instance{
+			Filter: func(path string, e mapify.Element) bool {
+				return path == "[1][1].Field"
+			},
+		}
+		// when
+		v := instance.MapAny(s)
+		// then
+		assert.Equal(t,
+			[][]map[string]interface{}{
+				{
+					{},
+				},
+				{
+					{},
+					{"Field": s[1][1].Field},
+				},
+			},
+			v)
+	})
+}
