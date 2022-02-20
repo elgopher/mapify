@@ -212,5 +212,52 @@ func TestInstance_MapAny(t *testing.T) {
 				actual)
 		})
 
+		t.Run("should map slice of slices of structs", func(t *testing.T) {
+			type structWithField struct {
+				Field string
+			}
+			s := [][]structWithField{
+				{{Field: "A1"}, {Field: "A2"}},
+				{{Field: "B1"}, {Field: "B2"}},
+			}
+			actual := instance.MapAny(s)
+			assert.Equal(t,
+				[][]map[string]interface{}{
+					{
+						map[string]interface{}{"Field": s[0][0].Field},
+						map[string]interface{}{"Field": s[0][1].Field},
+					},
+					{
+						map[string]interface{}{"Field": s[1][0].Field},
+						map[string]interface{}{"Field": s[1][1].Field},
+					},
+				},
+				actual)
+		})
+
+		t.Run("should map a struct with nested slice of structs", func(t *testing.T) {
+			type nestedStruct struct {
+				Field string
+			}
+
+			s := struct {
+				Nested []nestedStruct
+			}{
+				Nested: []nestedStruct{
+					{Field: "1"},
+					{Field: "2"},
+				},
+			}
+			actual := instance.MapAny(s)
+			assert.Equal(t,
+				map[string]interface{}{
+					"Nested": []map[string]interface{}{
+						{"Field": s.Nested[0].Field},
+						{"Field": s.Nested[1].Field},
+					},
+				},
+				actual)
+		})
+
 	})
 }

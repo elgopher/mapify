@@ -2,7 +2,6 @@
 package mapify
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -53,16 +52,26 @@ func (i Instance) mapStruct(reflectValue reflect.Value) map[string]interface{} {
 
 func (i Instance) mapSlice(reflectValue reflect.Value) interface{} {
 	kind := reflectValue.Type().Elem().Kind()
-	if kind == reflect.Struct {
-		s := make([]map[string]interface{}, reflectValue.Len())
+
+	switch kind {
+	case reflect.Struct:
+		slice := make([]map[string]interface{}, reflectValue.Len())
 
 		for j := 0; j < reflectValue.Len(); j++ {
-			s[j] = i.mapStruct(reflectValue.Index(j))
+			slice[j] = i.mapStruct(reflectValue.Index(j))
 		}
 
-		return s
+		return slice
+	case reflect.Slice:
+		if reflectValue.Type().Elem().Elem().Kind() == reflect.Struct {
+			slice := make([][]map[string]interface{}, reflectValue.Len())
+
+			for j := 0; j < reflectValue.Len(); j++ {
+				slice[j] = i.mapSlice(reflectValue.Index(j)).([]map[string]interface{})
+			}
+			return slice
+		}
 	}
-	fmt.Println(kind)
 
 	return reflectValue.Interface()
 }
