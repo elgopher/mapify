@@ -13,18 +13,10 @@ func (i Instance) MapAny(v interface{}) interface{} {
 
 	switch {
 	case reflectValue.Kind() == reflect.Ptr && reflectValue.Elem().Kind() == reflect.Struct:
-		if reflectValue.IsNil() {
-			return nil // TODO this should be v!
-		}
-
 		return i.MapAny(reflectValue.Elem().Interface())
 	case reflectValue.Kind() == reflect.Struct:
 		return i.mapStruct(reflectValue)
 	case reflectValue.Kind() == reflect.Slice:
-		if reflectValue.IsNil() {
-			return v
-		}
-
 		return i.mapSlice(reflectValue)
 	default:
 		return v
