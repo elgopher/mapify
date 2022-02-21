@@ -17,13 +17,13 @@ func main() {
 		VisibleField:  "visible",
 	}
 
-	instance := mapify.Instance{
+	mapper := mapify.Mapper{
 		Filter: func(path string, e mapify.Element) bool {
 			return path == ".VisibleField"
 		},
 	}
 
-	m := instance.MapAny(s)
+	m := mapper.MapAny(s)
 
 	fmt.Printf("%+v", m) // map[VisibleField:visible]
 }

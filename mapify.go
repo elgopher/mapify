@@ -9,8 +9,8 @@ import (
 	"strconv"
 )
 
-// Instance represents instance of mapper
-type Instance struct {
+// Mapper represents instance of mapper
+type Mapper struct {
 	Filter   Filter
 	Rename   Rename
 	MapValue MapValue
@@ -35,11 +35,11 @@ func (e Element) Name() string {
 	return e.name
 }
 
-func (i Instance) MapAny(v interface{}) interface{} {
+func (i Mapper) MapAny(v interface{}) interface{} {
 	return i.newInstance().mapAny("", v)
 }
 
-func (i Instance) mapAny(path string, v interface{}) interface{} {
+func (i Mapper) mapAny(path string, v interface{}) interface{} {
 	reflectValue := reflect.ValueOf(v)
 
 	switch {
@@ -54,7 +54,7 @@ func (i Instance) mapAny(path string, v interface{}) interface{} {
 	}
 }
 
-func (i Instance) newInstance() Instance {
+func (i Mapper) newInstance() Mapper {
 	if i.Filter == nil {
 		i.Filter = acceptAllFields
 	}
@@ -70,7 +70,7 @@ func (i Instance) newInstance() Instance {
 	return i
 }
 
-func (i Instance) mapStruct(path string, reflectValue reflect.Value) map[string]interface{} {
+func (i Mapper) mapStruct(path string, reflectValue reflect.Value) map[string]interface{} {
 	result := map[string]interface{}{}
 
 	reflectType := reflectValue.Type()
@@ -97,7 +97,7 @@ func (i Instance) mapStruct(path string, reflectValue reflect.Value) map[string]
 	return result
 }
 
-func (i Instance) mapSlice(path string, reflectValue reflect.Value) interface{} {
+func (i Mapper) mapSlice(path string, reflectValue reflect.Value) interface{} {
 	kind := reflectValue.Type().Elem().Kind()
 
 	switch kind {
