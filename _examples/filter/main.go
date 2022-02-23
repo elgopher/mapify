@@ -18,8 +18,8 @@ func main() {
 	}
 
 	mapper := mapify.Mapper{
-		Filter: func(path string, e mapify.Element) bool {
-			return path == ".VisibleField"
+		Filter: func(path string, e mapify.Element) (bool, error) {
+			return path == ".VisibleField", nil
 		},
 	}
 
