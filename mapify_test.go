@@ -417,14 +417,13 @@ func TestFilter(t *testing.T) {
 		assert.Nil(t, result)
 		assert.ErrorIs(t, actualErr, givenError)
 	})
-
 }
 
 func TestRename(t *testing.T) {
 	t.Run("should rename struct field", func(t *testing.T) {
 		mapper := mapify.Mapper{
-			Rename: func(path string, e mapify.Element) string {
-				return "newName"
+			Rename: func(path string, e mapify.Element) (string, error) {
+				return "newName", nil
 			},
 		}
 		// when
@@ -439,6 +438,20 @@ func TestRename(t *testing.T) {
 			"newName": "v",
 		}
 		assert.Equal(t, expected, v)
+	})
+
+	t.Run("should return error when Rename returned error", func(t *testing.T) {
+		givenError := stringError("err")
+		mapper := mapify.Mapper{
+			Rename: func(path string, e mapify.Element) (string, error) {
+				return e.Name(), givenError
+			},
+		}
+		// when
+		result, actualErr := mapper.MapAny(struct{ Field string }{})
+		// then
+		assert.Nil(t, result)
+		assert.ErrorIs(t, actualErr, givenError)
 	})
 }
 
