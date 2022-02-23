@@ -23,7 +23,10 @@ func main() {
 		},
 	}
 
-	m := mapper.MapAny(s)
+	result, err := mapper.MapAny(s)
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Printf("%+v", m) // map[VisibleField:visible]
+	fmt.Printf("%+v", result) // map[VisibleField:visible]
 }

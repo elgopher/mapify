@@ -8,6 +8,7 @@ import (
 
 	"github.com/elgopher/mapify"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMapper_MapAny(t *testing.T) {
@@ -18,7 +19,8 @@ func TestMapper_MapAny(t *testing.T) {
 			expected := []interface{}{1, 1.0, "str"}
 
 			for _, val := range expected {
-				result := mapper.MapAny(val)
+				result, err := mapper.MapAny(val)
+				require.NoError(t, err)
 				assert.Equal(t, val, result)
 			}
 		})
@@ -29,38 +31,44 @@ func TestMapper_MapAny(t *testing.T) {
 			expected := []interface{}{&str, &number}
 
 			for _, val := range expected {
-				result := mapper.MapAny(val)
+				result, err := mapper.MapAny(val)
+				require.NoError(t, err)
 				assert.Same(t, val, result)
 			}
 		})
 
 		t.Run("should map nil", func(t *testing.T) {
-			actual := mapper.MapAny(nil)
+			actual, err := mapper.MapAny(nil)
+			require.NoError(t, err)
 			assert.Nil(t, actual)
 		})
 
 		t.Run("should map pointer to nil primitive", func(t *testing.T) {
 			var str *string
-			actual := mapper.MapAny(str)
+			actual, err := mapper.MapAny(str)
+			require.NoError(t, err)
 			assert.Same(t, str, actual)
 		})
 
 		t.Run("should map an empty struct", func(t *testing.T) {
-			actual := mapper.MapAny(struct{}{})
+			actual, err := mapper.MapAny(struct{}{})
+			require.NoError(t, err)
 			assert.IsType(t, map[string]interface{}{}, actual)
 			assert.Empty(t, actual)
 		})
 
 		t.Run("should map a pointer to empty struct", func(t *testing.T) {
 			s := struct{}{}
-			actual := mapper.MapAny(&s)
+			actual, err := mapper.MapAny(&s)
+			require.NoError(t, err)
 			assert.IsType(t, map[string]interface{}{}, actual)
 			assert.Empty(t, actual)
 		})
 
 		t.Run("should map a pointer to nil struct", func(t *testing.T) {
 			var s *struct{}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			assert.Same(t, s, actual)
 		})
 
@@ -69,7 +77,8 @@ func TestMapper_MapAny(t *testing.T) {
 				Field1 string
 				Field2 string
 			}{}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			expected := map[string]interface{}{
 				"Field1": "",
 				"Field2": "",
@@ -82,14 +91,16 @@ func TestMapper_MapAny(t *testing.T) {
 				field1 string
 				field2 string
 			}{}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			assert.IsType(t, map[string]interface{}{}, actual)
 			assert.Empty(t, actual)
 		})
 
 		t.Run("should map a struct with field specified", func(t *testing.T) {
 			s := struct{ Field string }{Field: "value"}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			expected := map[string]interface{}{
 				"Field": s.Field,
 			}
@@ -100,8 +111,9 @@ func TestMapper_MapAny(t *testing.T) {
 			str := "value"
 			s := struct{ Field *string }{Field: &str}
 			// when
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
 			// then
+			require.NoError(t, err)
 			expected := map[string]interface{}{
 				"Field": s.Field,
 			}
@@ -110,7 +122,8 @@ func TestMapper_MapAny(t *testing.T) {
 
 		t.Run("should map a struct with nil field", func(t *testing.T) {
 			s := struct{ Field *string }{}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			expected := map[string]interface{}{
 				"Field": s.Field,
 			}
@@ -122,7 +135,8 @@ func TestMapper_MapAny(t *testing.T) {
 			s := struct{ Nested nestedStruct }{
 				Nested: nestedStruct{Field: "value"},
 			}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			expected := map[string]interface{}{
 				"Nested": map[string]interface{}{
 					"Field": s.Nested.Field,
@@ -133,7 +147,8 @@ func TestMapper_MapAny(t *testing.T) {
 
 		t.Run("should map a struct with nested nil struct", func(t *testing.T) {
 			s := struct{ Nested *struct{} }{}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			expected := map[string]interface{}{
 				"Nested": s.Nested,
 			}
@@ -141,26 +156,30 @@ func TestMapper_MapAny(t *testing.T) {
 		})
 
 		t.Run("should map an empty slice of strings", func(t *testing.T) {
-			actual := mapper.MapAny([]string{})
+			actual, err := mapper.MapAny([]string{})
+			require.NoError(t, err)
 			assert.Equal(t, []string{}, actual)
 		})
 
 		t.Run("should map an nil slice of strings", func(t *testing.T) {
 			var given []string
-			actual := mapper.MapAny(given)
+			actual, err := mapper.MapAny(given)
+			require.NoError(t, err)
 			assert.Equal(t, given, actual)
 		})
 
 		t.Run("should map an slice of two strings", func(t *testing.T) {
 			given := []string{"1", "2"}
-			actual := mapper.MapAny(given)
+			actual, err := mapper.MapAny(given)
+			require.NoError(t, err)
 			assert.Equal(t, given, actual)
 		})
 
 		t.Run("should map an slice of pointer to string", func(t *testing.T) {
 			str1 := "1"
 			given := []*string{&str1}
-			actual := mapper.MapAny(given)
+			actual, err := mapper.MapAny(given)
+			require.NoError(t, err)
 			assert.Equal(t, given, actual)
 		})
 
@@ -169,7 +188,8 @@ func TestMapper_MapAny(t *testing.T) {
 				{},
 				{},
 			}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			expected := []map[string]interface{}{
 				{},
 				{},
@@ -183,7 +203,8 @@ func TestMapper_MapAny(t *testing.T) {
 				{Field: "value1"},
 				{Field: "value2"},
 			}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			expected := []map[string]interface{}{
 				{
 					"Field": s[0].Field,
@@ -201,7 +222,8 @@ func TestMapper_MapAny(t *testing.T) {
 				{{Field: "A1"}, {Field: "A2"}},
 				{{Field: "B1"}, {Field: "B2"}},
 			}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			expected := [][]map[string]interface{}{
 				{
 					map[string]interface{}{"Field": s[0][0].Field},
@@ -225,7 +247,8 @@ func TestMapper_MapAny(t *testing.T) {
 					{Field: "2"},
 				},
 			}
-			actual := mapper.MapAny(s)
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
 			expected := map[string]interface{}{
 				"Nested": []map[string]interface{}{
 					{"Field": s.Nested[0].Field},
@@ -247,8 +270,9 @@ func TestFilter(t *testing.T) {
 			},
 		}
 		// when
-		v := mapper.MapAny(s)
+		v, err := mapper.MapAny(s)
 		// then
+		require.NoError(t, err)
 		assert.Empty(t, v)
 	})
 
@@ -260,8 +284,9 @@ func TestFilter(t *testing.T) {
 			},
 		}
 		// when
-		v := mapper.MapAny(s)
+		v, err := mapper.MapAny(s)
 		// then
+		require.NoError(t, err)
 		expected := map[string]interface{}{
 			"A": "",
 		}
@@ -278,8 +303,9 @@ func TestFilter(t *testing.T) {
 			},
 		}
 		// when
-		v := mapper.MapAny(s)
+		v, err := mapper.MapAny(s)
 		// then
+		require.NoError(t, err)
 		assert.Equal(t, map[string]interface{}{
 			"Nested": map[string]interface{}{"A": ""},
 		}, v)
@@ -296,8 +322,9 @@ func TestFilter(t *testing.T) {
 			},
 		}
 		// when
-		v := mapper.MapAny(s)
+		v, err := mapper.MapAny(s)
 		// then
+		require.NoError(t, err)
 		expected := []map[string]interface{}{
 			{},
 			{"Field": s[1].Field},
@@ -321,8 +348,9 @@ func TestFilter(t *testing.T) {
 			},
 		}
 		// when
-		v := mapper.MapAny(s)
+		v, err := mapper.MapAny(s)
 		// then
+		require.NoError(t, err)
 		expected := [][]map[string]interface{}{
 			{
 				{},
@@ -342,12 +370,13 @@ func TestFilter(t *testing.T) {
 			},
 		}
 		// when
-		v := mapper.MapAny(
+		v, err := mapper.MapAny(
 			struct{ Field string }{
 				Field: "v",
 			},
 		)
 		// then
+		require.NoError(t, err)
 		expected := map[string]interface{}{
 			"Field": "v",
 		}
@@ -361,13 +390,14 @@ func TestFilter(t *testing.T) {
 			},
 		}
 		// when
-		v := mapper.MapAny(
+		v, err := mapper.MapAny(
 			struct{ Field1, Field2 string }{
 				Field1: "keep it",
 				Field2: "omit this",
 			},
 		)
 		// then
+		require.NoError(t, err)
 		expected := map[string]interface{}{
 			"Field1": "keep it",
 		}
@@ -383,12 +413,13 @@ func TestRename(t *testing.T) {
 			},
 		}
 		// when
-		v := mapper.MapAny(
+		v, err := mapper.MapAny(
 			struct{ OldName string }{
 				OldName: "v",
 			},
 		)
 		// then
+		require.NoError(t, err)
 		expected := map[string]interface{}{
 			"newName": "v",
 		}
@@ -401,20 +432,21 @@ func TestMapValue(t *testing.T) {
 
 	t.Run("should map struct field", func(t *testing.T) {
 		mapper := mapify.Mapper{
-			MapValue: func(path string, e mapify.Element) interface{} {
+			MapValue: func(path string, e mapify.Element) (interface{}, error) {
 				if e.Name() == "Field1" {
-					return mappedValue
+					return mappedValue, nil
 				}
 
-				return e.Interface()
+				return e.Interface(), nil
 			},
 		}
 		s := struct{ Field1, Field2 int }{
 			Field1: 1, Field2: 2,
 		}
 		// when
-		v := mapper.MapAny(s)
+		v, err := mapper.MapAny(s)
 		// then
+		require.NoError(t, err)
 		expected := map[string]interface{}{
 			"Field1": mappedValue,
 			"Field2": s.Field2,
@@ -424,24 +456,45 @@ func TestMapValue(t *testing.T) {
 
 	t.Run("should map struct field by path", func(t *testing.T) {
 		mapper := mapify.Mapper{
-			MapValue: func(path string, e mapify.Element) interface{} {
+			MapValue: func(path string, e mapify.Element) (interface{}, error) {
 				if path == ".Field1" {
-					return mappedValue
+					return mappedValue, nil
 				}
 
-				return e.Interface()
+				return e.Interface(), nil
 			},
 		}
 		s := struct{ Field1, Field2 int }{
 			Field1: 1, Field2: 2,
 		}
 		// when
-		v := mapper.MapAny(s)
+		v, err := mapper.MapAny(s)
 		// then
+		require.NoError(t, err)
 		expected := map[string]interface{}{
 			"Field1": mappedValue,
 			"Field2": s.Field2,
 		}
 		assert.Equal(t, expected, v)
 	})
+
+	t.Run("should return error when MapValue returned error", func(t *testing.T) {
+		givenError := stringError("err")
+		mapper := mapify.Mapper{
+			MapValue: func(path string, e mapify.Element) (interface{}, error) {
+				return nil, givenError
+			},
+		}
+		// when
+		result, actualErr := mapper.MapAny(struct{ Field string }{})
+		// then
+		assert.Nil(t, result)
+		assert.ErrorIs(t, actualErr, givenError)
+	})
+}
+
+type stringError string
+
+func (d stringError) Error() string {
+	return string(d)
 }
