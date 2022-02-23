@@ -5,6 +5,7 @@
 package mapify
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -22,8 +23,9 @@ type Filter func(path string, e Element) bool
 // Rename renames element name.
 type Rename func(path string, e Element) string
 
-// MapValue map (transform) element value.
-type MapValue func(path string, e Element) interface{}
+// MapValue maps (transforms) element value. If error is returned then the whole conversion is aborted
+// and wrapped error is returned from Mapper.MapAny method.
+type MapValue func(path string, e Element) (interface{}, error)
 
 // Element represents either a map entry, field of a struct or unnamed element of a slice.
 type Element struct {
@@ -35,11 +37,11 @@ func (e Element) Name() string {
 	return e.name
 }
 
-func (i Mapper) MapAny(v interface{}) interface{} {
+func (i Mapper) MapAny(v interface{}) (interface{}, error) {
 	return i.newInstance().mapAny("", v)
 }
 
-func (i Mapper) mapAny(path string, v interface{}) interface{} {
+func (i Mapper) mapAny(path string, v interface{}) (interface{}, error) {
 	reflectValue := reflect.ValueOf(v)
 
 	switch {
@@ -50,7 +52,7 @@ func (i Mapper) mapAny(path string, v interface{}) interface{} {
 	case reflectValue.Kind() == reflect.Slice:
 		return i.mapSlice(path, reflectValue)
 	default:
-		return v
+		return v, nil
 	}
 }
 
@@ -70,7 +72,7 @@ func (i Mapper) newInstance() Mapper {
 	return i
 }
 
-func (i Mapper) mapStruct(path string, reflectValue reflect.Value) map[string]interface{} {
+func (i Mapper) mapStruct(path string, reflectValue reflect.Value) (map[string]interface{}, error) {
 	result := map[string]interface{}{}
 
 	reflectType := reflectValue.Type()
@@ -89,15 +91,22 @@ func (i Mapper) mapStruct(path string, reflectValue reflect.Value) map[string]in
 
 		if i.Filter(fieldPath, element) {
 			renamed := i.Rename(fieldPath, element)
-			mappedValue := i.MapValue(fieldPath, element)
-			result[renamed] = i.mapAny(fieldPath, mappedValue)
+			mappedValue, err := i.MapValue(fieldPath, element)
+			if err != nil {
+				return nil, fmt.Errorf("MapValue failed: %w", err)
+			}
+
+			result[renamed], err = i.mapAny(fieldPath, mappedValue)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	return result
+	return result, nil
 }
 
-func (i Mapper) mapSlice(path string, reflectValue reflect.Value) interface{} {
+func (i Mapper) mapSlice(path string, reflectValue reflect.Value) (_ interface{}, err error) {
 	kind := reflectValue.Type().Elem().Kind()
 
 	switch kind {
@@ -105,24 +114,31 @@ func (i Mapper) mapSlice(path string, reflectValue reflect.Value) interface{} {
 		slice := make([]map[string]interface{}, reflectValue.Len())
 
 		for j := 0; j < reflectValue.Len(); j++ {
-			slice[j] = i.mapStruct(slicePath(path, j), reflectValue.Index(j))
+			slice[j], err = i.mapStruct(slicePath(path, j), reflectValue.Index(j))
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		return slice
+		return slice, nil
 	case reflect.Slice:
 		if reflectValue.Type().Elem().Elem().Kind() == reflect.Struct {
 			var slice [][]map[string]interface{}
 
 			for j := 0; j < reflectValue.Len(); j++ {
-				indexValue := i.mapSlice(slicePath(path, j), reflectValue.Index(j))
+				indexValue, err := i.mapSlice(slicePath(path, j), reflectValue.Index(j))
+				if err != nil {
+					return nil, err
+				}
+
 				slice = append(slice, indexValue.([]map[string]interface{}))
 			}
 
-			return slice
+			return slice, nil
 		}
 	}
 
-	return reflectValue.Interface()
+	return reflectValue.Interface(), nil
 }
 
 func slicePath(path string, index int) string {

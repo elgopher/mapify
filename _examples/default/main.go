@@ -22,9 +22,12 @@ func main() {
 	}
 
 	mapper := mapify.Mapper{}
-	m := mapper.MapAny(s)
+	result, err := mapper.MapAny(s)
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Printf("%+v", m) // map[IntField:3 Nested:map[Slice:[map[Field:1] map[Field:2]]] PointerToStringField:0x521e00 StringField:str]
+	fmt.Printf("%+v", result) // map[IntField:3 Nested:map[Slice:[map[Field:1] map[Field:2]]] PointerToStringField:0x521e00 StringField:str]
 }
 
 type Struct struct {
