@@ -17,8 +17,9 @@ type Mapper struct {
 	MapValue MapValue
 }
 
-// Filter returns true when element should be included.
-type Filter func(path string, e Element) bool
+// Filter returns true when element should be included. If error is returned then the whole conversion is aborted
+// and wrapped error is returned from Mapper.MapAny method.
+type Filter func(path string, e Element) (bool, error)
 
 // Rename renames element name.
 type Rename func(path string, e Element) string
@@ -89,7 +90,12 @@ func (i Mapper) mapStruct(path string, reflectValue reflect.Value) (map[string]i
 		value := reflectValue.Field(j)
 		element := Element{name: fieldName, Value: value}
 
-		if i.Filter(fieldPath, element) {
+		accepted, err := i.Filter(fieldPath, element)
+		if err != nil {
+			return nil, fmt.Errorf("Filter failed: %w", err)
+		}
+
+		if accepted {
 			renamed := i.Rename(fieldPath, element)
 			mappedValue, err := i.MapValue(fieldPath, element)
 			if err != nil {

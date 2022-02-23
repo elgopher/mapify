@@ -265,8 +265,8 @@ func TestFilter(t *testing.T) {
 	t.Run("should filter out all struct fields", func(t *testing.T) {
 		s := struct{ A, B string }{}
 		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) bool {
-				return false
+			Filter: func(path string, e mapify.Element) (bool, error) {
+				return false, nil
 			},
 		}
 		// when
@@ -279,8 +279,8 @@ func TestFilter(t *testing.T) {
 	t.Run("should filter by struct field path", func(t *testing.T) {
 		s := struct{ A, B string }{}
 		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) bool {
-				return path == ".A"
+			Filter: func(path string, e mapify.Element) (bool, error) {
+				return path == ".A", nil
 			},
 		}
 		// when
@@ -298,8 +298,8 @@ func TestFilter(t *testing.T) {
 			Nested struct{ A string }
 		}{}
 		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) bool {
-				return path == ".Nested" || path == ".Nested.A"
+			Filter: func(path string, e mapify.Element) (bool, error) {
+				return path == ".Nested" || path == ".Nested.A", nil
 			},
 		}
 		// when
@@ -317,8 +317,8 @@ func TestFilter(t *testing.T) {
 			{Field: "1"},
 		}
 		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) bool {
-				return path == "[1].Field"
+			Filter: func(path string, e mapify.Element) (bool, error) {
+				return path == "[1].Field", nil
 			},
 		}
 		// when
@@ -343,8 +343,8 @@ func TestFilter(t *testing.T) {
 			},
 		}
 		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) bool {
-				return path == "[1][1].Field"
+			Filter: func(path string, e mapify.Element) (bool, error) {
+				return path == "[1][1].Field", nil
 			},
 		}
 		// when
@@ -365,8 +365,8 @@ func TestFilter(t *testing.T) {
 
 	t.Run("should filter by field name", func(t *testing.T) {
 		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) bool {
-				return e.Name() == "Field"
+			Filter: func(path string, e mapify.Element) (bool, error) {
+				return e.Name() == "Field", nil
 			},
 		}
 		// when
@@ -385,8 +385,8 @@ func TestFilter(t *testing.T) {
 
 	t.Run("should filter by value", func(t *testing.T) {
 		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) bool {
-				return e.String() == "keep it"
+			Filter: func(path string, e mapify.Element) (bool, error) {
+				return e.String() == "keep it", nil
 			},
 		}
 		// when
@@ -403,6 +403,21 @@ func TestFilter(t *testing.T) {
 		}
 		assert.Equal(t, expected, v)
 	})
+
+	t.Run("should return error when Filter returned error", func(t *testing.T) {
+		givenError := stringError("err")
+		mapper := mapify.Mapper{
+			Filter: func(path string, e mapify.Element) (bool, error) {
+				return false, givenError
+			},
+		}
+		// when
+		result, actualErr := mapper.MapAny(struct{ Field string }{})
+		// then
+		assert.Nil(t, result)
+		assert.ErrorIs(t, actualErr, givenError)
+	})
+
 }
 
 func TestRename(t *testing.T) {

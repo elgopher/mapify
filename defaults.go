@@ -3,8 +3,8 @@
 
 package mapify
 
-func acceptAllFields(string, Element) bool {
-	return true
+func acceptAllFields(string, Element) (bool, error) {
+	return true, nil
 }
 
 func noRename(_ string, e Element) string {
