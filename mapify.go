@@ -91,30 +91,40 @@ func (i Mapper) mapStruct(path string, reflectValue reflect.Value) (map[string]i
 		value := reflectValue.Field(j)
 		element := Element{name: fieldName, Value: value}
 
-		accepted, err := i.Filter(fieldPath, element)
-		if err != nil {
-			return nil, fmt.Errorf("Filter failed: %w", err)
-		}
-
-		if accepted {
-			renamed, err := i.Rename(fieldPath, element)
-			if err != nil {
-				return nil, fmt.Errorf("Rename failed: %w", err)
-			}
-
-			mappedValue, err := i.MapValue(fieldPath, element)
-			if err != nil {
-				return nil, fmt.Errorf("MapValue failed: %w", err)
-			}
-
-			result[renamed], err = i.mapAny(fieldPath, mappedValue)
-			if err != nil {
-				return nil, err
-			}
+		if err := i.mapStructField(fieldPath, element, result); err != nil {
+			return nil, err
 		}
 	}
 
 	return result, nil
+}
+
+func (i Mapper) mapStructField(fieldPath string, element Element, result map[string]interface{}) error {
+	accepted, filterErr := i.Filter(fieldPath, element)
+	if filterErr != nil {
+		return fmt.Errorf("Filter failed: %w", filterErr)
+	}
+
+	if accepted {
+		renamed, renameErr := i.Rename(fieldPath, element)
+		if renameErr != nil {
+			return fmt.Errorf("Rename failed: %w", renameErr)
+		}
+
+		mappedValue, mapErr := i.MapValue(fieldPath, element)
+		if mapErr != nil {
+			return fmt.Errorf("MapValue failed: %w", mapErr)
+		}
+
+		finalValue, err := i.mapAny(fieldPath, mappedValue)
+		if err != nil {
+			return err
+		}
+
+		result[renamed] = finalValue
+	}
+
+	return nil
 }
 
 func (i Mapper) mapSlice(path string, reflectValue reflect.Value) (_ interface{}, err error) {
