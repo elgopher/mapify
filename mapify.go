@@ -21,8 +21,9 @@ type Mapper struct {
 // and wrapped error is returned from Mapper.MapAny method.
 type Filter func(path string, e Element) (bool, error)
 
-// Rename renames element name.
-type Rename func(path string, e Element) string
+// Rename renames element name. If error is returned then the whole conversion is aborted
+// and wrapped error is returned from Mapper.MapAny method.
+type Rename func(path string, e Element) (string, error)
 
 // MapValue maps (transforms) element value. If error is returned then the whole conversion is aborted
 // and wrapped error is returned from Mapper.MapAny method.
@@ -96,7 +97,11 @@ func (i Mapper) mapStruct(path string, reflectValue reflect.Value) (map[string]i
 		}
 
 		if accepted {
-			renamed := i.Rename(fieldPath, element)
+			renamed, err := i.Rename(fieldPath, element)
+			if err != nil {
+				return nil, fmt.Errorf("Rename failed: %w", err)
+			}
+
 			mappedValue, err := i.MapValue(fieldPath, element)
 			if err != nil {
 				return nil, fmt.Errorf("MapValue failed: %w", err)

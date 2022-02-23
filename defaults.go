@@ -7,8 +7,8 @@ func acceptAllFields(string, Element) (bool, error) {
 	return true, nil
 }
 
-func noRename(_ string, e Element) string {
-	return e.Name()
+func noRename(_ string, e Element) (string, error) {
+	return e.Name(), nil
 }
 
 func interfaceValue(_ string, e Element) (interface{}, error) {
