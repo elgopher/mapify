@@ -31,14 +31,26 @@ type MapValue func(path string, e Element) (interface{}, error)
 
 // Element represents either a map entry, field of a struct or unnamed element of a slice.
 type Element struct {
-	name string
+	name  string
+	field *reflect.StructField
 	reflect.Value
 }
 
+// Name returns field name of a struct, key of a map or empty string, when it represents element of a slice.
 func (e Element) Name() string {
 	return e.name
 }
 
+// StructField returns the reflect.StructField if e represents a field of a struct. If not, ok is false.
+func (e Element) StructField() (_ reflect.StructField, ok bool) {
+	if e.field == nil {
+		return reflect.StructField{}, false
+	}
+
+	return *e.field, true
+}
+
+// MapAny maps any object (struct, map, slice etc.) by converting each struct found to a map.
 func (i Mapper) MapAny(v interface{}) (interface{}, error) {
 	return i.newInstance().mapAny("", v)
 }
@@ -89,7 +101,7 @@ func (i Mapper) mapStruct(path string, reflectValue reflect.Value) (map[string]i
 		fieldName := field.Name
 		fieldPath := path + "." + fieldName
 		value := reflectValue.Field(j)
-		element := Element{name: fieldName, Value: value}
+		element := Element{name: fieldName, Value: value, field: &field}
 
 		if err := i.mapStructField(fieldPath, element, result); err != nil {
 			return nil, err

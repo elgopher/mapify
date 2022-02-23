@@ -526,3 +526,34 @@ type stringError string
 func (d stringError) Error() string {
 	return string(d)
 }
+
+func TestElement_StructField(t *testing.T) {
+	t.Run("should return struct field in callbacks", func(t *testing.T) {
+		mapper := mapify.Mapper{
+			Filter: func(path string, e mapify.Element) (bool, error) {
+				assertStructField(t, "Field", e)
+
+				return true, nil
+			},
+			Rename: func(path string, e mapify.Element) (string, error) {
+				assertStructField(t, "Field", e)
+
+				return e.Name(), nil
+			},
+			MapValue: func(path string, e mapify.Element) (interface{}, error) {
+				assertStructField(t, "Field", e)
+
+				return e.Interface(), nil
+			},
+		}
+		_, _ = mapper.MapAny(struct{ Field string }{})
+	})
+}
+
+func assertStructField(t *testing.T, fieldName string, e mapify.Element) {
+	t.Helper()
+
+	field, ok := e.StructField()
+	require.True(t, ok)
+	assert.Equal(t, fieldName, field.Name)
+}
