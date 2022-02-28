@@ -51,6 +51,9 @@ func (e Element) StructField() (_ reflect.StructField, ok bool) {
 }
 
 // MapAny maps any object (struct, map, slice etc.) by converting each struct found to a map.
+//
+//  * for struct the returned type will be map[string]interface{}
+//  * for slice of structs the returned type will be []map[string]interface{}
 func (i Mapper) MapAny(v interface{}) (interface{}, error) {
 	return i.newInstance().mapAny("", v)
 }
