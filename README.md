@@ -6,7 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/elgopher/mapify)](https://goreportcard.com/report/github.com/elgopher/mapify)
 [![codecov](https://codecov.io/gh/elgopher/mapify/branch/master/graph/badge.svg)](https://codecov.io/gh/elgopher/mapify)
 
-**Highly configurable** struct to map converter. _Will convert maps into other maps as well (work in progress)._
+**Highly configurable** struct to map converter. Converts `map[string]any` into other maps as well.
 
 ## Features
 
@@ -56,3 +56,11 @@ type SomeStruct struct {
 	Field string
 }
 ```
+
+## MapAny algorithm
+
+1. Take an object which is a struct, map or slice.
+2. Traverse entire object looking for nested structs or maps.
+3. **Filter** elements (struct fields, map keys)
+4. **Rename** field names or map keys
+5. **Map** (struct field or map values)

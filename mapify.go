@@ -66,6 +66,8 @@ func (i Mapper) mapAny(path string, v interface{}) (interface{}, error) {
 		return i.mapAny(path, reflectValue.Elem().Interface())
 	case reflectValue.Kind() == reflect.Struct:
 		return i.mapStruct(path, reflectValue)
+	case reflectValue.Kind() == reflect.Map && reflectValue.Type().Key().Kind() == reflect.String:
+		return i.mapStringMap(path, reflectValue)
 	case reflectValue.Kind() == reflect.Slice:
 		return i.mapSlice(path, reflectValue)
 	default:
@@ -106,7 +108,7 @@ func (i Mapper) mapStruct(path string, reflectValue reflect.Value) (map[string]i
 		value := reflectValue.Field(j)
 		element := Element{name: fieldName, Value: value, field: &field}
 
-		if err := i.mapStructField(fieldPath, element, result); err != nil {
+		if err := i.mapElement(fieldPath, element, result); err != nil {
 			return nil, err
 		}
 	}
@@ -114,7 +116,25 @@ func (i Mapper) mapStruct(path string, reflectValue reflect.Value) (map[string]i
 	return result, nil
 }
 
-func (i Mapper) mapStructField(fieldPath string, element Element, result map[string]interface{}) error {
+func (i Mapper) mapStringMap(path string, reflectValue reflect.Value) (map[string]interface{}, error) {
+	result := map[string]interface{}{}
+
+	keys := reflectValue.MapKeys()
+	for _, key := range keys {
+		fieldName := key.String()
+		fieldPath := path + "." + fieldName
+		value := reflectValue.MapIndex(key)
+		element := Element{name: fieldName, Value: value}
+
+		if err := i.mapElement(fieldPath, element, result); err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
+func (i Mapper) mapElement(fieldPath string, element Element, result map[string]interface{}) error {
 	accepted, filterErr := i.Filter(fieldPath, element)
 	if filterErr != nil {
 		return fmt.Errorf("Filter failed: %w", filterErr)
@@ -157,8 +177,27 @@ func (i Mapper) mapSlice(path string, reflectValue reflect.Value) (_ interface{}
 		}
 
 		return slice, nil
+	case reflect.Map:
+		if reflectValue.Type().Elem().Key().Kind() != reflect.String {
+			return reflectValue.Interface(), nil
+		}
+
+		slice := make([]map[string]interface{}, reflectValue.Len())
+
+		for j := 0; j < reflectValue.Len(); j++ {
+			slice[j], err = i.mapStringMap(slicePath(path, j), reflectValue.Index(j))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return slice, nil
 	case reflect.Slice:
-		if reflectValue.Type().Elem().Elem().Kind() == reflect.Struct {
+		sliceElem := reflectValue.Type().Elem().Elem()
+
+		if sliceElem.Kind() == reflect.Struct ||
+			(sliceElem.Kind() == reflect.Map && sliceElem.Key().Kind() == reflect.String) {
+
 			var slice [][]map[string]interface{}
 
 			for j := 0; j < reflectValue.Len(); j++ {
