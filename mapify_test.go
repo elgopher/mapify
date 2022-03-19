@@ -257,267 +257,410 @@ func TestMapper_MapAny(t *testing.T) {
 			}
 			assert.Equal(t, expected, actual)
 		})
+	})
 
+	t.Run("should convert map[string]any to map[string]interface{}", func(t *testing.T) {
+		m := map[string]string{"key1": "value1", "key2": "value2"}
+		mapper := mapify.Mapper{}
+		result, err := mapper.MapAny(m)
+		require.NoError(t, err)
+		assert.Equal(t, map[string]interface{}{"key1": "value1", "key2": "value2"}, result)
+	})
+
+	t.Run("should not convert map which does not have a string key", func(t *testing.T) {
+		tests := map[string]interface{}{
+			"map[struct]":     map[struct{ A string }]string{},
+			"[]map[struct]":   []map[struct{ A string }]string{{}},
+			"[][]map[struct]": [][]map[struct{ A string }]string{{}},
+		}
+
+		for name, theMap := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{}
+				result, err := mapper.MapAny(theMap)
+				require.NoError(t, err)
+				assert.Equal(t, theMap, result)
+			})
+		}
 	})
 }
 
 func TestFilter(t *testing.T) {
-	t.Run("should filter out all struct fields", func(t *testing.T) {
-		s := struct{ A, B string }{}
-		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) (bool, error) {
-				return false, nil
-			},
+	t.Run("should filter out all elements", func(t *testing.T) {
+		tests := map[string]interface{}{
+			"struct": struct{ A, B string }{},
+			"map":    map[string]string{"A": "", "B": ""},
 		}
-		// when
-		v, err := mapper.MapAny(s)
-		// then
-		require.NoError(t, err)
-		assert.Empty(t, v)
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					Filter: func(path string, e mapify.Element) (bool, error) {
+						return false, nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				assert.Empty(t, v)
+			})
+		}
 	})
 
-	t.Run("should filter by struct field path", func(t *testing.T) {
-		s := struct{ A, B string }{}
-		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) (bool, error) {
-				return path == ".A", nil
-			},
+	t.Run("should filter by element path", func(t *testing.T) {
+		tests := map[string]interface{}{
+			"struct": struct{ A, B string }{},
+			"map":    map[string]string{"A": "", "B": ""},
 		}
-		// when
-		v, err := mapper.MapAny(s)
-		// then
-		require.NoError(t, err)
-		expected := map[string]interface{}{
-			"A": "",
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					Filter: func(path string, e mapify.Element) (bool, error) {
+						return path == ".A", nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				expected := map[string]interface{}{
+					"A": "",
+				}
+				assert.Equal(t, expected, v)
+			})
 		}
-		assert.Equal(t, expected, v)
 	})
 
-	t.Run("should filter by nested struct field path", func(t *testing.T) {
-		s := struct {
-			Nested struct{ A string }
-		}{}
-		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) (bool, error) {
-				return path == ".Nested" || path == ".Nested.A", nil
+	t.Run("should filter by nested element path", func(t *testing.T) {
+		tests := map[string]interface{}{
+			"struct": struct {
+				Nested struct{ A string }
+			}{},
+			"map": map[string]map[string]string{
+				"Nested": {"A": ""},
 			},
 		}
-		// when
-		v, err := mapper.MapAny(s)
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, map[string]interface{}{
-			"Nested": map[string]interface{}{"A": ""},
-		}, v)
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					Filter: func(path string, e mapify.Element) (bool, error) {
+						return path == ".Nested" || path == ".Nested.A", nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				assert.Equal(t, map[string]interface{}{
+					"Nested": map[string]interface{}{"A": ""},
+				}, v)
+			})
+		}
 	})
 
 	t.Run("should filter by slice element path", func(t *testing.T) {
-		s := []struct{ Field string }{
-			{Field: "0"},
-			{Field: "1"},
-		}
-		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) (bool, error) {
-				return path == "[1].Field", nil
+		tests := map[string]interface{}{
+			"struct": []struct{ Field string }{
+				{Field: "0"},
+				{Field: "1"},
+			},
+			"map": []map[string]string{
+				{"Field": "0"},
+				{"Field": "1"},
 			},
 		}
-		// when
-		v, err := mapper.MapAny(s)
-		// then
-		require.NoError(t, err)
-		expected := []map[string]interface{}{
-			{},
-			{"Field": s[1].Field},
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					Filter: func(path string, e mapify.Element) (bool, error) {
+						return path == "[1].Field", nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				expected := []map[string]interface{}{
+					{},
+					{"Field": "1"},
+				}
+				assert.Equal(t, expected, v)
+			})
 		}
-		assert.Equal(t, expected, v)
 	})
 
 	t.Run("should filter by 2d slice element path", func(t *testing.T) {
-		s := [][]struct{ Field string }{
-			{
-				{Field: "A0"},
+		tests := map[string]interface{}{
+			"struct": [][]struct{ Field string }{
+				{
+					{Field: "A0"},
+				},
+				{
+					{Field: "B0"},
+					{Field: "B1"},
+				},
 			},
-			{
-				{Field: "B0"},
-				{Field: "B1"},
-			},
-		}
-		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) (bool, error) {
-				return path == "[1][1].Field", nil
-			},
-		}
-		// when
-		v, err := mapper.MapAny(s)
-		// then
-		require.NoError(t, err)
-		expected := [][]map[string]interface{}{
-			{
-				{},
-			},
-			{
-				{},
-				{"Field": s[1][1].Field},
+			"map": [][]map[string]string{
+				{
+					{"Field": "A0"},
+				},
+				{
+					{"Field": "B0"},
+					{"Field": "B1"},
+				},
 			},
 		}
-		assert.Equal(t, expected, v)
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					Filter: func(path string, e mapify.Element) (bool, error) {
+						return path == "[1][1].Field", nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				expected := [][]map[string]interface{}{
+					{
+						{},
+					},
+					{
+						{},
+						{"Field": "B1"},
+					},
+				}
+				assert.Equal(t, expected, v)
+			})
+		}
 	})
 
-	t.Run("should filter by field name", func(t *testing.T) {
-		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) (bool, error) {
-				return e.Name() == "Field", nil
-			},
-		}
-		// when
-		v, err := mapper.MapAny(
-			struct{ Field string }{
+	t.Run("should filter by element name", func(t *testing.T) {
+		tests := map[string]interface{}{
+			"struct": struct{ Field string }{
 				Field: "v",
 			},
-		)
-		// then
-		require.NoError(t, err)
-		expected := map[string]interface{}{
-			"Field": "v",
+			"map": map[string]string{
+				"Field": "v",
+			},
 		}
-		assert.Equal(t, expected, v)
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					Filter: func(path string, e mapify.Element) (bool, error) {
+						return e.Name() == "Field", nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				expected := map[string]interface{}{
+					"Field": "v",
+				}
+				assert.Equal(t, expected, v)
+			})
+		}
 	})
 
 	t.Run("should filter by value", func(t *testing.T) {
-		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) (bool, error) {
-				return e.String() == "keep it", nil
-			},
-		}
-		// when
-		v, err := mapper.MapAny(
-			struct{ Field1, Field2 string }{
+		tests := map[string]interface{}{
+			"struct": struct{ Field1, Field2 string }{
 				Field1: "keep it",
 				Field2: "omit this",
 			},
-		)
-		// then
-		require.NoError(t, err)
-		expected := map[string]interface{}{
-			"Field1": "keep it",
+			"map": map[string]string{
+				"Field1": "keep it",
+				"Field2": "omit this",
+			},
 		}
-		assert.Equal(t, expected, v)
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					Filter: func(path string, e mapify.Element) (bool, error) {
+						return e.String() == "keep it", nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				expected := map[string]interface{}{
+					"Field1": "keep it",
+				}
+				assert.Equal(t, expected, v)
+			})
+		}
 	})
 
 	t.Run("should return error when Filter returned error", func(t *testing.T) {
-		givenError := stringError("err")
-		mapper := mapify.Mapper{
-			Filter: func(path string, e mapify.Element) (bool, error) {
-				return false, givenError
-			},
+		tests := map[string]interface{}{
+			"struct": struct{ Field string }{},
+			"map":    map[string]string{"Field": ""},
 		}
-		// when
-		result, actualErr := mapper.MapAny(struct{ Field string }{})
-		// then
-		assert.Nil(t, result)
-		assert.ErrorIs(t, actualErr, givenError)
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				givenError := stringError("err")
+				mapper := mapify.Mapper{
+					Filter: func(path string, e mapify.Element) (bool, error) {
+						return false, givenError
+					},
+				}
+				// when
+				result, actualErr := mapper.MapAny(object)
+				// then
+				assert.Nil(t, result)
+				assert.ErrorIs(t, actualErr, givenError)
+			})
+		}
 	})
 }
 
 func TestRename(t *testing.T) {
-	t.Run("should rename struct field", func(t *testing.T) {
-		mapper := mapify.Mapper{
-			Rename: func(path string, e mapify.Element) (string, error) {
-				return "newName", nil
-			},
-		}
-		// when
-		v, err := mapper.MapAny(
-			struct{ OldName string }{
+	t.Run("should rename element", func(t *testing.T) {
+		tests := map[string]interface{}{
+			"struct": struct{ OldName string }{
 				OldName: "v",
 			},
-		)
-		// then
-		require.NoError(t, err)
-		expected := map[string]interface{}{
-			"newName": "v",
+			"map": map[string]string{
+				"OldName": "v",
+			},
 		}
-		assert.Equal(t, expected, v)
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					Rename: func(path string, e mapify.Element) (string, error) {
+						return "newName", nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				expected := map[string]interface{}{
+					"newName": "v",
+				}
+				assert.Equal(t, expected, v)
+			})
+		}
 	})
 
 	t.Run("should return error when Rename returned error", func(t *testing.T) {
-		givenError := stringError("err")
-		mapper := mapify.Mapper{
-			Rename: func(path string, e mapify.Element) (string, error) {
-				return e.Name(), givenError
-			},
+		tests := map[string]interface{}{
+			"struct": struct{ Field string }{},
+			"map":    map[string]string{"Field": ""},
 		}
-		// when
-		result, actualErr := mapper.MapAny(struct{ Field string }{})
-		// then
-		assert.Nil(t, result)
-		assert.ErrorIs(t, actualErr, givenError)
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				givenError := stringError("err")
+				mapper := mapify.Mapper{
+					Rename: func(path string, e mapify.Element) (string, error) {
+						return e.Name(), givenError
+					},
+				}
+				// when
+				result, actualErr := mapper.MapAny(object)
+				// then
+				assert.Nil(t, result)
+				assert.ErrorIs(t, actualErr, givenError)
+			})
+		}
 	})
 }
 
 func TestMapValue(t *testing.T) {
 	mappedValue := "str"
+	field2Value := 2
+
+	tests := map[string]interface{}{
+		"struct": struct{ Field1, Field2 int }{
+			Field1: 1, Field2: field2Value,
+		},
+		"map": map[string]int{
+			"Field1": 1, "Field2": field2Value,
+		},
+	}
 
 	t.Run("should map struct field", func(t *testing.T) {
-		mapper := mapify.Mapper{
-			MapValue: func(path string, e mapify.Element) (interface{}, error) {
-				if e.Name() == "Field1" {
-					return mappedValue, nil
-				}
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					MapValue: func(path string, e mapify.Element) (interface{}, error) {
+						if e.Name() == "Field1" {
+							return mappedValue, nil
+						}
 
-				return e.Interface(), nil
-			},
+						return e.Interface(), nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				expected := map[string]interface{}{
+					"Field1": mappedValue,
+					"Field2": field2Value,
+				}
+				assert.Equal(t, expected, v)
+			})
 		}
-		s := struct{ Field1, Field2 int }{
-			Field1: 1, Field2: 2,
-		}
-		// when
-		v, err := mapper.MapAny(s)
-		// then
-		require.NoError(t, err)
-		expected := map[string]interface{}{
-			"Field1": mappedValue,
-			"Field2": s.Field2,
-		}
-		assert.Equal(t, expected, v)
 	})
 
 	t.Run("should map struct field by path", func(t *testing.T) {
-		mapper := mapify.Mapper{
-			MapValue: func(path string, e mapify.Element) (interface{}, error) {
-				if path == ".Field1" {
-					return mappedValue, nil
-				}
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				mapper := mapify.Mapper{
+					MapValue: func(path string, e mapify.Element) (interface{}, error) {
+						if path == ".Field1" {
+							return mappedValue, nil
+						}
 
-				return e.Interface(), nil
-			},
+						return e.Interface(), nil
+					},
+				}
+				// when
+				v, err := mapper.MapAny(object)
+				// then
+				require.NoError(t, err)
+				expected := map[string]interface{}{
+					"Field1": mappedValue,
+					"Field2": field2Value,
+				}
+				assert.Equal(t, expected, v)
+			})
 		}
-		s := struct{ Field1, Field2 int }{
-			Field1: 1, Field2: 2,
-		}
-		// when
-		v, err := mapper.MapAny(s)
-		// then
-		require.NoError(t, err)
-		expected := map[string]interface{}{
-			"Field1": mappedValue,
-			"Field2": s.Field2,
-		}
-		assert.Equal(t, expected, v)
 	})
 
 	t.Run("should return error when MapValue returned error", func(t *testing.T) {
-		givenError := stringError("err")
-		mapper := mapify.Mapper{
-			MapValue: func(path string, e mapify.Element) (interface{}, error) {
-				return nil, givenError
-			},
+		tests := map[string]interface{}{
+			"struct": struct{ Field string }{},
+			"map":    map[string]string{"Field": ""},
 		}
-		// when
-		result, actualErr := mapper.MapAny(struct{ Field string }{})
-		// then
-		assert.Nil(t, result)
-		assert.ErrorIs(t, actualErr, givenError)
+
+		for name, object := range tests {
+			t.Run(name, func(t *testing.T) {
+				givenError := stringError("err")
+				mapper := mapify.Mapper{
+					MapValue: func(path string, e mapify.Element) (interface{}, error) {
+						return nil, givenError
+					},
+				}
+				// when
+				result, actualErr := mapper.MapAny(object)
+				// then
+				assert.Nil(t, result)
+				assert.ErrorIs(t, actualErr, givenError)
+			})
+		}
 	})
 }
 
