@@ -11,12 +11,13 @@
 ## Features
 
 * **configuration outside the struct**
-  * could be in a different package - separation of concerns
+  * could be in a different package
   * no need to modify original structs (by adding tags, implementing methods etc.)
   * **behaviour as a code** - you provide code which will be run during conversion
-* ability to **rename keys** during conversion
-* ability to **omit keys** based on field name, value or tag etc.
-* ability to **map elements** during conversion
+* ability to:
+  * **rename keys** during conversion
+  * **omit keys** based on field name, value or tag etc.
+  * **map elements** during conversion
 
 ## Installation
 
@@ -61,6 +62,6 @@ type SomeStruct struct {
 
 1. Take an object which is a struct, map or slice.
 2. Traverse entire object looking for nested structs or maps.
-3. **Filter** elements (struct fields, map keys)
-4. **Rename** field names or map keys
-5. **Map** (struct field or map values)
+3. **Filter** elements (struct fields and map keys).
+4. **Rename** field names or map keys.
+5. **Map** (struct field or map values).
