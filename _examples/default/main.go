@@ -8,6 +8,7 @@ import (
 
 var str = "str"
 
+// This example shows how Mapify works out-of-the box (with default configuration).
 func main() {
 	s := Struct{
 		StringField:          str,
