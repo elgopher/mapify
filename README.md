@@ -18,6 +18,7 @@
   * **rename keys** during conversion
   * **omit keys** based on field name, value or tag etc.
   * **map elements** during conversion
+  * specify which structs should be converted to maps
 
 ## Installation
 

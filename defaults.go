@@ -3,6 +3,12 @@
 
 package mapify
 
+import "reflect"
+
+func convertAll(string, reflect.Value) (bool, error) {
+	return true, nil
+}
+
 func acceptAllFields(string, Element) (bool, error) {
 	return true, nil
 }
