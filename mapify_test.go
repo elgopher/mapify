@@ -4,6 +4,8 @@
 package mapify_test
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/elgopher/mapify"
@@ -699,4 +701,139 @@ func assertStructField(t *testing.T, fieldName string, e mapify.Element) {
 	field, ok := e.StructField()
 	require.True(t, ok)
 	assert.Equal(t, fieldName, field.Name)
+}
+
+func TestShouldConvert(t *testing.T) {
+	t.Run("should not convert root element", func(t *testing.T) {
+		mapper := mapify.Mapper{
+			ShouldConvert: func(path string, value reflect.Value) (bool, error) {
+				if path == "" {
+					return false, nil
+				}
+
+				return true, nil
+			},
+		}
+
+		tests := map[string]interface{}{
+			"struct": struct{ Field string }{Field: "v"},
+			"map":    map[string]string{"key": "value"},
+			"slice":  []struct{ Field string }{{Field: "v"}},
+		}
+
+		for name, instance := range tests {
+			t.Run(name, func(t *testing.T) {
+				// when
+				mapped, err := mapper.MapAny(instance)
+				// then
+				require.NoError(t, err)
+				assert.Equal(t, instance, mapped)
+			})
+		}
+	})
+
+	t.Run("should not convert nested object", func(t *testing.T) {
+		type nestedStruct struct{ Field string }
+
+		nestedStructInstance := nestedStruct{Field: "a"}
+		nestedMap := map[string]string{"Field": "a"}
+
+		tests := map[string]struct {
+			input, expected interface{}
+		}{
+			"struct in a struct field": {
+				input:    struct{ Nested nestedStruct }{Nested: nestedStructInstance},
+				expected: map[string]interface{}{"Nested": nestedStructInstance},
+			},
+			"struct pointer in a struct field": {
+				input:    struct{ Nested *nestedStruct }{Nested: &nestedStructInstance},
+				expected: map[string]interface{}{"Nested": &nestedStructInstance},
+			},
+			"struct in a map key": {
+				input:    map[string]nestedStruct{"Nested": nestedStructInstance},
+				expected: map[string]interface{}{"Nested": nestedStructInstance},
+			},
+			"map in a struct field": {
+				input:    struct{ Nested map[string]string }{Nested: nestedMap},
+				expected: map[string]interface{}{"Nested": nestedMap},
+			},
+			"map in a map key": {
+				input:    map[string]map[string]string{"Nested": nestedMap},
+				expected: map[string]interface{}{"Nested": nestedMap},
+			},
+			"structs slice in a struct field": {
+				input:    struct{ Nested []nestedStruct }{Nested: []nestedStruct{nestedStructInstance}},
+				expected: map[string]interface{}{"Nested": []nestedStruct{nestedStructInstance}},
+			},
+			"structs slice in a map key": {
+				input:    map[string][]nestedStruct{"Nested": {nestedStructInstance}},
+				expected: map[string]interface{}{"Nested": []nestedStruct{nestedStructInstance}},
+			},
+			"map slice in a struct field": {
+				input:    struct{ Nested []map[string]string }{Nested: []map[string]string{nestedMap}},
+				expected: map[string]interface{}{"Nested": []map[string]string{nestedMap}},
+			},
+			"2d structs slice in a map key": {
+				input:    map[string][][]nestedStruct{"Nested": {{nestedStructInstance}}},
+				expected: map[string]interface{}{"Nested": [][]nestedStruct{{nestedStructInstance}}},
+			},
+		}
+
+		mapper := mapify.Mapper{
+			ShouldConvert: func(path string, value reflect.Value) (bool, error) {
+				if path == ".Nested" {
+					return false, nil
+				}
+
+				return true, nil
+			},
+		}
+
+		for name, test := range tests {
+			t.Run(name, func(t *testing.T) {
+				// when
+				mapped, err := mapper.MapAny(test.input)
+				// then
+				require.NoError(t, err)
+				assert.Equal(t, test.expected, mapped)
+			})
+		}
+	})
+
+	t.Run("should not run ShouldConvert for inconvertible values", func(t *testing.T) {
+		mapper := mapify.Mapper{
+			ShouldConvert: func(path string, value reflect.Value) (bool, error) {
+				panic("ShouldConvert run but should not")
+			},
+		}
+
+		tests := []interface{}{nil, 1, "str", map[int]interface{}{}, []int{1}}
+
+		for _, test := range tests {
+			name := fmt.Sprintf("%+v", test)
+
+			t.Run(name, func(t *testing.T) {
+				assert.NotPanics(t, func() {
+					_, _ = mapper.MapAny(test)
+				})
+			})
+		}
+	})
+
+	t.Run("should run ShouldConvert only once for pointer to struct", func(t *testing.T) {
+		s := &struct{ Field string }{Field: "v"}
+
+		timesRun := 0
+		mapper := mapify.Mapper{
+			ShouldConvert: func(path string, value reflect.Value) (bool, error) {
+				assert.Equal(t, s, value.Interface())
+				timesRun++
+				return true, nil
+			},
+		}
+
+		_, err := mapper.MapAny(s)
+		require.NoError(t, err)
+		assert.Equal(t, 1, timesRun, "ShouldConvert must be executed only once")
+	})
 }
