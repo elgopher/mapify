@@ -8,9 +8,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/elgopher/mapify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/elgopher/mapify"
 )
 
 func TestMapper_MapAny(t *testing.T) {
@@ -202,6 +203,25 @@ func TestMapper_MapAny(t *testing.T) {
 		t.Run("should map a slice of structs", func(t *testing.T) {
 			type structWithField struct{ Field string }
 			s := []structWithField{
+				{Field: "value1"},
+				{Field: "value2"},
+			}
+			actual, err := mapper.MapAny(s)
+			require.NoError(t, err)
+			expected := []map[string]interface{}{
+				{
+					"Field": s[0].Field,
+				},
+				{
+					"Field": s[1].Field,
+				},
+			}
+			assert.Equal(t, expected, actual)
+		})
+
+		t.Run("should map a slice of pointers to structs", func(t *testing.T) {
+			type structWithField struct{ Field string }
+			s := []*structWithField{
 				{Field: "value1"},
 				{Field: "value2"},
 			}

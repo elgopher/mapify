@@ -56,8 +56,8 @@ func (e Element) StructField() (_ reflect.StructField, ok bool) {
 
 // MapAny maps any object (struct, map, slice etc.) by converting each struct found to a map.
 //
-//  * for struct the returned type will be map[string]interface{}
-//  * for slice of structs the returned type will be []map[string]interface{}
+//   - for struct the returned type will be map[string]interface{}
+//   - for slice of structs the returned type will be []map[string]interface{}
 func (i Mapper) MapAny(v interface{}) (interface{}, error) {
 	return i.newInstance().mapAny("", v)
 }
@@ -198,10 +198,11 @@ func (i Mapper) mapElement(fieldPath string, element Element, result map[string]
 }
 
 func (i Mapper) mapSlice(path string, reflectValue reflect.Value) (_ interface{}, err error) {
-	kind := reflectValue.Type().Elem().Kind()
+	genericType := reflectValue.Type().Elem()
+	kind := genericType.Kind()
 
-	switch kind {
-	case reflect.Struct:
+	switch {
+	case kind == reflect.Struct || (kind == reflect.Ptr && genericType.Elem().Kind() == reflect.Struct):
 		shouldConvert, err := i.ShouldConvert(path, reflectValue)
 		if err != nil {
 			return nil, fmt.Errorf("ShouldConvert failed: %w", err)
@@ -221,8 +222,8 @@ func (i Mapper) mapSlice(path string, reflectValue reflect.Value) (_ interface{}
 		}
 
 		return slice, nil
-	case reflect.Map:
-		if reflectValue.Type().Elem().Key().Kind() != reflect.String {
+	case kind == reflect.Map:
+		if genericType.Key().Kind() != reflect.String {
 			return reflectValue.Interface(), nil
 		}
 
@@ -245,8 +246,8 @@ func (i Mapper) mapSlice(path string, reflectValue reflect.Value) (_ interface{}
 		}
 
 		return slice, nil
-	case reflect.Slice:
-		sliceElem := reflectValue.Type().Elem().Elem()
+	case kind == reflect.Slice:
+		sliceElem := genericType.Elem()
 
 		if sliceElem.Kind() == reflect.Struct ||
 			(sliceElem.Kind() == reflect.Map && sliceElem.Key().Kind() == reflect.String) {
